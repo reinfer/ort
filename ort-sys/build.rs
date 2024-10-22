@@ -4,7 +4,7 @@ use std::{
 };
 
 #[allow(unused)]
-const ONNXRUNTIME_VERSION: &str = "1.19.2";
+const ONNXRUNTIME_VERSION: &str = "1.18.0";
 
 const ORT_ENV_SYSTEM_LIB_LOCATION: &str = "ORT_LIB_LOCATION";
 const ORT_ENV_SYSTEM_LIB_PROFILE: &str = "ORT_LIB_PROFILE";
@@ -77,6 +77,19 @@ fn extract_tgz(buf: &[u8], output: &Path) {
 	let tar = flate2::read::GzDecoder::new(buf);
 	let mut archive = tar::Archive::new(tar);
 	archive.unpack(output).expect("Failed to extract .tgz file");
+
+	// Create an onnxruntime symlink if there is only one unpacked directory.
+	let entries = std::fs::read_dir(output)
+		.expect("read_dir")
+		.filter_map(|entry| entry.ok())
+		.collect::<Vec<_>>();
+
+	if entries.len() == 1 {
+		std::os::unix::fs::symlink(
+			output.join(entries[0].path()),
+			output.join(ORT_EXTRACT_DIR)
+		).expect("Failed to symlink");
+	}
 }
 
 #[cfg(feature = "copy-dylibs")]
