@@ -83,6 +83,13 @@ fn extract_tgz(buf: &[u8], output: &Path) {
 	let tar = flate2::read::GzDecoder::new(buf);
 	let mut archive = tar::Archive::new(tar);
 	archive.unpack(output).expect("Failed to extract .tgz file");
+
+	let dir_name = format!("onnxruntime-linux-x64-gpu-{}", ONNXRUNTIME_VERSION);
+    // Create an onnxruntime symlink.
+    std::os::unix::fs::symlink(
+            dir_name,
+            output.join(ORT_EXTRACT_DIR)
+    ).expect("Failed to symlink");
 }
 
 #[cfg(feature = "copy-dylibs")]
