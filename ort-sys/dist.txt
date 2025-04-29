@@ -1,1 +1,1 @@
-cu12	x86_64-unknown-linux-gnu	https://github.com/microsoft/onnxruntime/releases/download/v1.20.1/onnxruntime-linux-x64-gpu-1.20.1.tgz	6BFB87C6EBE55367A94509B8EF062239E188DCCF8D5CAAC8D6909B2344893BF0
+cu12	x86_64-unknown-linux-gnu	https://github.com/microsoft/onnxruntime/releases/download/v1.21.0/onnxruntime-linux-x64-gpu-1.21.0.tgz	EF37A33BA75E457AEBFD0D7B342AB20424AA6126BC5F565D247F1201B66996CF

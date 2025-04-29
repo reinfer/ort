@@ -28,16 +28,8 @@ fn fetch_file(source_url: &str) -> Vec<u8> {
 	let resp = ureq::Agent::new_with_config(
 		ureq::config::Config::builder()
 			.proxy(ureq::Proxy::try_from_env())
-			.max_redirects(0)
 			.https_only(true)
 			.tls_config(ureq::tls::TlsConfig::builder().provider(ureq::tls::TlsProvider::NativeTls).build())
-			.user_agent(format!(
-				"{}/{} (host {}; for {})",
-				env!("CARGO_PKG_NAME"),
-				env!("CARGO_PKG_VERSION"),
-				std::env::var("HOST").unwrap(),
-				std::env::var("TARGET").unwrap()
-			))
 			.timeout_global(Some(std::time::Duration::from_secs(1800)))
 			.build()
 	)
@@ -47,7 +39,6 @@ fn fetch_file(source_url: &str) -> Vec<u8> {
 
 	resp.into_body()
 		.into_with_config()
-		.limit(1_073_741_824)
 		.read_to_vec()
 		.unwrap_or_else(|err| panic!("Failed to download from `{source_url}`: {err}"))
 }
@@ -89,16 +80,15 @@ fn extract_tgz(buf: &[u8], output: &Path) {
 	archive.unpack(output).expect("Failed to extract .tgz file");
 
 	let dir_name = format!("onnxruntime-linux-x64-gpu-{}", ONNXRUNTIME_VERSION);
-    // Create an onnxruntime symlink.
-    std::os::unix::fs::symlink(
-            dir_name,
-            output.join(ORT_EXTRACT_DIR)
-    ).expect("Failed to symlink");
+	// Create an onnxruntime symlink.
+	std::os::unix::fs::symlink(dir_name, output.join(ORT_EXTRACT_DIR)).expect("Failed to symlink");
 }
 
 #[cfg(feature = "copy-dylibs")]
 fn copy_libraries(lib_dir: &Path, out_dir: &Path) {
 	// get the target directory - we need to place the dlls next to the executable so they can be properly loaded by windows
+
+	use sha2::digest::Output;
 	let out_dir = out_dir.ancestors().nth(3).unwrap();
 	for out_dir in [out_dir.to_path_buf(), out_dir.join("examples"), out_dir.join("deps")] {
 		#[cfg(windows)]
@@ -119,6 +109,7 @@ fn copy_libraries(lib_dir: &Path, out_dir: &Path) {
 			if out_path.is_symlink() {
 				std::fs::remove_file(&out_path).unwrap();
 			}
+			println!("cargo:warning=Out path: {}", out_path.display());
 			if !out_path.exists() {
 				#[cfg(windows)]
 				if std::os::windows::fs::symlink_file(&lib_path, &out_path).is_err() {
@@ -528,6 +519,7 @@ fn prepare_libort_dir() -> (PathBuf, bool) {
 			let lib_dir = bin_extract_dir.join(ORT_EXTRACT_DIR);
 			if !lib_dir.exists() {
 				let downloaded_file = fetch_file(prebuilt_url);
+				println!("Downloaded: {}", downloaded_file.len());
 				assert!(verify_file(&downloaded_file, prebuilt_hash), "hash of downloaded ONNX Runtime binary does not match!");
 
 				let mut temp_extract_dir = bin_extract_dir
